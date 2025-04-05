@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Guatemala Public Procurement Dashboard</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 900px; margin: auto; }
+    input { padding: 8px; width: 70%; margin-right: 10px; }
+    button { padding: 8px 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Guatemala Public Procurement Dashboard</h1>
+  <input id="search" placeholder="Search by keyword (e.g. salud, infraestructura)..." />
+  <button onclick="fetchContracts()">Search</button>
+
+  <div id="loading" style="margin-top: 15px; display:none;">Loading...</div>
+  <table id="results" style="display:none;">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Buyer</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+
+  <script>
+    const API_BASE = 'https://ocds.guatecompras.gt/gc-api/v1/releases';
+    const CORS_PROXY = 'https://corsproxy.io/?';
+
+    async function fetchContracts() {
+      const query = document.getElementById('search').value || '';
+      const url = `${CORS_PROXY}${API_BASE}?text=${encodeURIComponent(query)}&limit=20`;
+
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('results').style.display = 'none';
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const tableBody = document.getElementById('table-body');
+        tableBody.innerHTML = '';
+
+        data.results.forEach(release => {
+          const title = release.tender?.title || 'No title';
+          const buyer = release.buyer?.name || 'Unknown';
+          const amount = release.tender?.value?.amount || 0;
+          const currency = release.tender?.value?.currency || 'GTQ';
+          const date = release.date ? new Date(release.date).toLocaleDateString() : 'N/A';
+          const status = release.tender?.status || 'N/A';
+
+          const row = `
+            <tr>
+              <td>${title}</td>
+              <td>${buyer}</td>
+              <td>${amount} ${currency}</td>
+              <td>${date}</td>
+              <td>${status}</td>
+            </tr>
+          `;
+          tableBody.innerHTML += row;
+        });
+
+        document.getElementById('results').style.display = 'table';
+      } catch (err) {
+        alert('Failed to fetch data. Check your network or try again later.');
+        console.error(err);
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
